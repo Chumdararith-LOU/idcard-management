@@ -30,11 +30,21 @@ jobs:
       - name: 5. Start Docker Compose Environment
         run: docker compose up -d
 
-      - name: 6. Run Ansible Playbook to Deploy
+      - name: 6. Wait for SSH service to be ready
+        run: |
+          echo "Waiting for container initialization and SSH availability..."
+          until nc -z 127.0.0.1 2222; do
+            echo "SSH port 2222 is not ready yet. Sleeping 5 seconds..."
+            sleep 5
+          done
+          echo "SSH port is open! Giving the service 5 more seconds to initialize protocol handshakes..."
+          sleep 5
+
+      - name: 7. Run Ansible Playbook to Deploy
         run: ansible-playbook -i inventory.ini deploy-playbook.yml
 
-      - name: 7. Send failure email notification
-        if: failure() 
+      - name: 8. Send failure email notification
+        if: failure() # This step executes automatically if ANY of the steps above fail
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
