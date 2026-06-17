@@ -1,0 +1,33 @@
+---
+- name: DevOps Pipeline Automation with Ansible
+  hosts: web_server
+  gather_facts: no
+  vars:
+    app_path: "/app"
+    backup_dest: "/app/backup.sql"
+
+  tasks:
+    - name: 1. Clean local repository modifications to avoid pull conflicts
+      ansible.builtin.shell:
+        cmd: "git reset --hard HEAD && git clean -fd"
+        chdir: "{{ app_path }}"
+
+    - name: 2. Fetch latest changes from GitHub mainline branch
+      ansible.builtin.shell:
+        cmd: "git pull origin main"
+        chdir: "{{ app_path }}"
+
+    - name: 3. Run localized unit tests utilizing the isolated SQLite configuration profile
+      ansible.builtin.shell:
+        cmd: "mvn test -Dspring.profiles.active=test"
+        chdir: "{{ app_path }}"
+      register: maven_test_output
+
+    - name: Display test execution output summary logs
+      ansible.builtin.debug:
+        var: maven_test_output.stdout_lines
+
+    - name: 4. Export logical structure backup from production MySQL database container
+      ansible.builtin.shell:
+        cmd: "mysqldump -h db-container -u root -p'Hello@123' A-LOU_Chumdararith-db > {{ backup_dest }}"
+      register: mysql_backup_output
