@@ -24,10 +24,11 @@ services:
     working_dir: /app
     command: >
       /bin/bash -c "
-      apt-get update && apt-get install -y nginx openssh-server php-cli git curl &&
+      apt-get update && apt-get install -y nginx openssh-server php-cli git curl maven default-mysql-client &&
       echo 'server { listen 8443; location / { proxy_pass http://127.0.0.1:8080; } }' > /etc/nginx/sites-available/default &&
       service nginx restart &&
       sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config &&
+      sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config &&
       echo 'root:Hello@123' | chpasswd &&
       ssh-keygen -A &&
       service ssh start &&

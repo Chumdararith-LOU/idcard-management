@@ -27,10 +27,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ansible sshpass
 
-      - name: 5. Run Ansible Playbook to Deploy
+      - name: 5. Start Docker Compose Environment
+        run: docker-compose up -d
+
+      - name: 6. Run Ansible Playbook to Deploy
         run: ansible-playbook -i inventory.ini deploy-playbook.yml
 
-      - name: 6. Send failure email notification
+      - name: 7. Send failure email notification
         if: failure() 
         uses: dawidd6/action-send-mail@v3
         with:
