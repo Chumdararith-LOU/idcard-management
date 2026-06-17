@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>ID Card Generator - Batch Export</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; }
+        .export-box { border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); background-color: #ffffff; }
+        .table-select { width: 40px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">🪪 ID Card Studio</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link text-white-50" th:href="@{/}">Profiles</a>
+                <a class="nav-link text-white-50" th:href="@{/profiles/new}">New Profile</a>
+                <a class="nav-link active" th:href="@{/profiles/batch}">Batch Export</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="mb-4">
+            <h2 class="fw-bold text-dark mb-1">Batch ID Card Export</h2>
+            <p class="text-muted small">Select matching classifications or build a custom list using checkboxes to compile multi-card printable PDF bundles.</p>
+        </div>
+
+        <div class="card export-box p-4 mb-4">
+            <h5 class="fw-bold text-secondary mb-3">Quick Export by Group</h5>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-primary px-4 fw-medium" onclick="exportGroup('ALL')">All Profiles</button>
+                <button type="button" class="btn btn-outline-primary px-4" onclick="exportGroup('STUDENT')">STUDENT Only</button>
+                <button type="button" class="btn btn-outline-success px-4" onclick="exportGroup('EMPLOYEE')">EMPLOYEE Only</button>
+                <button type="button" class="btn btn-outline-secondary px-4" onclick="exportGroup('USER')">USER Only</button>
+            </div>
+        </div>
+
+        <div class="card export-box p-4">
+            <h5 class="fw-bold text-secondary mb-3">Custom Selection Mapping</h5>
+            <p class="text-muted small mb-3">Tick individual checkboxes below to specify cardholder nodes, then click the export action button.</p>
+
+            <form id="batchExportForm">
+                <div class="table-responsive mb-3">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase font-monospace">
+                            <tr>
+                                <th class="table-select">
+                                    <input type="checkbox" id="selectAllBox" class="form-check-input"/>
+                                </th>
+                                <th>Reg. Number</th>
+                                <th>Full Name</th>
+                                <th>Classification</th>
+                                <th>Department</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(profiles)}">
+                                <td colspan="5" class="text-center py-4 text-muted">No operational profile nodes present in local storage.</td>
+                            </tr>
+                            <tr th:each="profile : ${profiles}">
+                                <td class="table-select">
+                                    <input type="checkbox" name="profileIds" th:value="${profile.id}" th:data-type="${profile.type.name()}" class="form-check-input profile-checkbox"/>
+                                </td>
+                                <td class="fw-bold font-monospace text-primary" th:text="${profile.registrationNumber}">2026-ENG-001</td>
+                                <td class="fw-semibold text-dark" th:text="${profile.fullName}">David Lim</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border px-2 py-1" th:text="${profile.type}">EMPLOYEE</span>
+                                </td>
+                                <td class="text-muted" th:text="${profile.department != null ? profile.department : '—'}">Marketing</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="submit" class="btn btn-dark px-4 fw-medium shadow-sm">⬇ Download Selected PDF Bundle</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const selectAllBox = document.getElementById('selectAllBox');
+        const checkboxes = document.querySelectorAll('.profile-checkbox');
+        const batchExportForm = document.getElementById('batchExportForm');
+
+        // Master select all toggle action mapping
+        selectAllBox.addEventListener('change', (e) => {
+            checkboxes.forEach(box => box.checked = e.target.checked);
+        });
+
+        /**
+         * Compiles specific classification groups directly via endpoint streams
+         */
+        function exportGroup(type) {
+            let targetIds = [];
+            checkboxes.forEach(box => {
+                if (type === 'ALL' || box.getAttribute('data-type') === type) {
+                    targetIds.push(box.value);
+                }
+            });
+
+            if (targetIds.length === 0) {
+                alert(`No active profile records matching classification '${type}' exist in the table.`);
+                return;
+            }
+
+            // Route execution browser view directly to the selection download engine
+            window.location.href = '/api/profiles/selected/pdf?ids=' + targetIds.join(',');
+        }
+
+        // Custom individual selection Form submissions stream processor
+        batchExportForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            let checkedIds = [];
+            checkboxes.forEach(box => {
+                if (box.checked) checkedIds.push(box.value);
+            });
+
+            if (checkedIds.length === 0) {
+                alert('Please check at least one identity row node row checkbox before initiating export pipeline.');
+                return;
+            }
+
+            window.location.href = '/api/profiles/selected/pdf?ids=' + checkedIds.join(',');
+        });
+    </script>
+</body>
+</html>

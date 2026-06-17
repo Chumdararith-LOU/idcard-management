@@ -62,7 +62,11 @@ public class ProfileService {
         }
 
         // 4. Assign fallback template if omitted
-        if (profile.getTemplate() == null) {
+        if (profile.getTemplate() != null && profile.getTemplate().getId() != null) {
+            Template managedTemplate = templateService.getTemplateById(profile.getTemplate().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Target Template Theme ID does not exist."));
+            profile.setTemplate(managedTemplate);
+        } else {
             Template defaultTemplate = templateService.getOrCreateDefaultTemplate();
             profile.setTemplate(defaultTemplate);
         }
@@ -75,6 +79,7 @@ public class ProfileService {
                 .orElseThrow(() -> new IllegalArgumentException("Profile not found with ID: " + id));
 
         profile.setFullName(details.getFullName());
+        profile.setType(details.getType()); 
         profile.setDepartment(details.getDepartment());
         profile.setTitle(details.getTitle());
         profile.setEmail(details.getEmail());
@@ -98,19 +103,14 @@ public class ProfileService {
         profileRepository.deleteById(id);
     }
 
-    /**
-     * Generates custom registration format: YEAR-DEPT-RANDOM_SEQUENCE
-     * e.g., 2026-ENG-4821
-     */
     private String generateRegistrationNumber(Profile profile) {
         int currentYear = LocalDate.now().getYear();
         String dept = (profile.getDepartment() != null && profile.getDepartment().length() >= 3)
                 ? profile.getDepartment().substring(0, 3).toUpperCase()
                 : "GEN";
         
-        // Appending a small timestamp sequence to ensure fast uniqueness without collisions
-        long sequence = System.currentTimeMillis() % 10000;
-        return String.format("%d-%s-%04d", currentYear, dept, sequence);
+        String uniqueCluster = UUID.randomUUID().toString().substring(0, 5).toUpperCase();
+        return String.format("%d-%s-%s", currentYear, dept, uniqueCluster);
     }
 
     public void validatePhoto(MultipartFile file) {

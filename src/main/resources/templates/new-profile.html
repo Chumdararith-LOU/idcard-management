@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>ID Card Generator - Create Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; }
+        .workspace-card { border: none; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); background-color: #ffffff; }
+        .preview-sticky { position: sticky; top: 30px; display: flex; justify-content: center; align-items: center; min-height: 500px; }
+        
+        /* Interactive Graphic Canvas Elements Layout styling */
+        .id-badge { width: 300px; height: 450px; border-radius: 14px; background-color: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden; display: flex; flex-direction: column; align-items: center; border: 1px solid #e2e8f0; position: relative; transition: all 0.3s ease; }
+        .badge-header { width: 100%; text-align: center; color: #ffffff; padding: 20px 10px; box-sizing: border-box; }
+        .badge-org { font-size: 1rem; font-weight: 700; text-transform: uppercase; margin: 0; letter-spacing: 0.5px; }
+        .badge-tag { font-size: 0.7rem; opacity: 0.8; margin-top: 3px; }
+        .badge-type-banner { width: 100%; background-color: rgba(255,255,255,0.2); text-align: center; font-size: 0.75rem; font-weight: 700; padding: 4px 0; letter-spacing: 1px; }
+        
+        .badge-body { flex-grow: 1; display: flex; flex-direction: column; align-items: center; width: 100%; padding: 20px; box-sizing: border-box; text-align: center; }
+        .badge-avatar-frame { width: 105px; height: 105px; border-radius: 50%; border: 3px solid #f1f5f9; overflow: hidden; background-color: #e2e8f0; display: flex; justify-content: center; align-items: center; margin-bottom: 15px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .badge-avatar-frame img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .badge-name { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 2px; line-height: 1.2; }
+        .badge-title { font-size: 0.85rem; color: #64748b; font-weight: 500; margin-bottom: 15px; }
+        
+        .badge-meta-row { width: 100%; display: flex; flex-direction: column; gap: 4px; font-size: 0.75rem; color: #334155; text-align: left; background: #f8fafc; padding: 10px 12px; border-radius: 8px; }
+        .badge-footer-placeholder { width: 100%; height: 50px; background-color: #f1f5f9; border-top: 1px solid #e2e8f0; display: flex; justify-content: center; align-items: center; font-size: 0.7rem; font-style: italic; color: #94a3b8; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">🪪 ID Card Studio</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link text-white-50" th:href="@{/}">Profiles</a>
+                <a class="nav-link active" th:href="@{/profiles/new}">New Profile</a>
+                <a class="nav-link text-white-50" th:href="@{/profiles/batch}">Batch Export</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row g-4">
+            
+            <div class="col-lg-7">
+                <div class="card workspace-card p-4">
+                    <h3 class="fw-bold text-dark mb-1">Issue Identity Pass</h3>
+                    <p class="text-muted small mb-4">Provide identity registration parameters below. The graphic module on the right updates reactively.</p>
+                    
+                    <form id="profileForm" novalidate>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Profile Classification</label>
+                                <select id="inputClass" class="form-select" required>
+                                    <option value="STUDENT">STUDENT</option>
+                                    <option value="EMPLOYEE">EMPLOYEE</option>
+                                    <option value="USER">USER</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Barcode Encoding standard</label>
+                                <select id="inputBarcode" class="form-select">
+                                    <option value="CODE_128">CODE_128 (Alphanumeric)</option>
+                                    <option value="EAN_13">EAN_13 (International Retail)</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold text-secondary">Full Name</label>
+                                <input type="text" id="inputName" class="form-control" placeholder="e.g. Jane Doe" required/>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Department / Segment</label>
+                                <input type="text" id="inputDept" class="form-control" placeholder="e.g. Engineering" required/>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Title / Role / Program</label>
+                                <input type="text" id="inputTitle" class="form-control" placeholder="e.g. Senior Manager" required/>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label small fw-semibold text-secondary">Email Address</label>
+                                <input type="email" id="inputEmail" class="form-control" placeholder="name@orderzone.net"/>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-semibold text-secondary">Blood Group</label>
+                                <input type="text" id="inputBlood" class="form-control" placeholder="e.g. O+"/>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Date of Birth</label>
+                                <input type="date" id="inputDob" class="form-control"/>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Expiration Date</label>
+                                <input type="date" id="inputExpiry" class="form-control"/>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold text-secondary">Visual Theme Styling layout</label>
+                                <select id="inputTemplate" class="form-select">
+                                    <option th:each="tpl : ${templates}" 
+                                            th:value="${tpl.id}" 
+                                            th:text="${tpl.name}"
+                                            th:data-org="${tpl.organizationName}"
+                                            th:data-tagline="${tpl.tagline}"
+                                            th:data-primary="${tpl.primaryColor}"
+                                            th:data-text="${tpl.textColor}">Classic Theme</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-semibold text-secondary">Profile Image Upload (JPEG/PNG, max 2MB)</label>
+                                <input type="file" id="inputFile" class="form-control" accept="image/jpeg, image/png"/>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary px-4 fw-medium">Save & Generate Card</button>
+                            <a th:href="@{/}" class="btn btn-outline-secondary px-4">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="preview-sticky">
+                    <div id="badgeCanvas" class="id-badge" 
+                         th:style="'border-color:' + ${defaultTemplate.primaryColor} + ';'">
+                        
+                        <div id="badgeHeader" class="badge-header" th:style="'background-color:' + ${defaultTemplate.primaryColor} + ';'">
+                            <div id="badgeOrgText" class="badge-org" th:text="${defaultTemplate.organizationName}">ORDERZONE UNIVERSITY</div>
+                            <div id="badgeTagText" class="badge-tag" th:text="${defaultTemplate.tagline}">Knowledge · Integrity · Service</div>
+                        </div>
+                        <div id="badgeTypeBanner" class="badge-type-banner">STUDENT ID</div>
+                        
+                        <div class="badge-body">
+                            <div class="badge-avatar-frame">
+                                <img id="badgeImg" src="https://api.dicebear.com/7.x/initials/svg?seed=Card" alt="Preview Face"/>
+                            </div>
+                            
+                            <div id="badgeNameText" class="badge-name">Full Name</div>
+                            <div id="badgeTitleText" class="badge-title">Title / Program</div>
+                            
+                            <div class="badge-meta-row">
+                                <div><strong>Dept:</strong> <span id="badgeDeptText">—</span></div>
+                                <div><strong>Blood:</strong> <span id="badgeBloodText">—</span></div>
+                                <div><strong>Expiry:</strong> <span id="badgeExpiryText">As Configured</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="badge-collapse badge-footer-placeholder">
+                            QR & barcode vectors generated on save
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const inputName = document.getElementById('inputName');
+        const inputClass = document.getElementById('inputClass');
+        const inputTitle = document.getElementById('inputTitle');
+        const inputDept = document.getElementById('inputDept');
+        const inputBlood = document.getElementById('inputBlood');
+        const inputExpiry = document.getElementById('inputExpiry');
+        const inputTemplate = document.getElementById('inputTemplate');
+        const inputFile = document.getElementById('inputFile');
+        const profileForm = document.getElementById('profileForm');
+
+        // Dynamic Input Sync Listeners
+        inputName.addEventListener('input', (e) => {
+            document.getElementById('badgeNameText').innerText = e.target.value.trim() || 'Full Name';
+        });
+        inputTitle.addEventListener('input', (e) => {
+            document.getElementById('badgeTitleText').innerText = e.target.value.trim() || 'Title / Program';
+        });
+        inputDept.addEventListener('input', (e) => {
+            document.getElementById('badgeDeptText').innerText = e.target.value.trim() || '—';
+        });
+        inputBlood.addEventListener('input', (e) => {
+            document.getElementById('badgeBloodText').innerText = e.target.value.trim().toUpperCase() || '—';
+        });
+        inputExpiry.addEventListener('input', (e) => {
+            document.getElementById('badgeExpiryText').innerText = e.target.value || 'As Configured';
+        });
+        inputClass.addEventListener('change', (e) => {
+            document.getElementById('badgeTypeBanner').innerText = e.target.value + ' ID';
+        });
+
+        // Theme dropdown picker listener mapping color layers directly
+        inputTemplate.addEventListener('change', () => {
+            const selectedOption = inputTemplate.options[inputTemplate.selectedIndex];
+            const primaryColor = selectedOption.getAttribute('data-primary');
+            
+            document.getElementById('badgeHeader').style.backgroundColor = primaryColor;
+            document.getElementById('badgeCanvas').style.borderColor = primaryColor;
+            document.getElementById('badgeOrgText').innerText = selectedOption.getAttribute('data-org');
+            document.getElementById('badgeTagText').innerText = selectedOption.getAttribute('data-tagline') || '';
+        });
+
+        // Image stream Local File reader listener attachment
+        inputFile.addEventListener('change', () => {
+            const [file] = inputFile.files;
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('badgeImg').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Safe Sequential Form Pipeline Processing
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!profileForm.checkValidity()) {
+                alert('Please fill out all mandatory identity fields completely.');
+                return;
+            }
+
+            // Assemble profile entity construct payload
+            const profilePayload = {
+                fullName: inputName.value,
+                type: inputClass.value,
+                department: inputDept.value,
+                title: inputTitle.value,
+                email: document.getElementById('inputEmail').value,
+                bloodGroup: inputBlood.value,
+                dateOfBirth: document.getElementById('inputDob').value || null,
+                expiryDate: inputExpiry.value || null,
+                barcodeType: document.getElementById('inputBarcode').value,
+                template: { id: parseInt(inputTemplate.value) }
+            };
+
+            try {
+                // Step A: Save transactional details to the database via REST controller
+                const profileResponse = await fetch('/api/profiles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(profilePayload)
+                });
+
+                if (!profileResponse.ok) {
+                    const errorMsg = await profileResponse.text();
+                    throw new Error(errorMsg || 'Failed to submit profile metrics.');
+                }
+
+                const createdProfile = await profileResponse.json();
+
+                // Step B: If photo attachment exists, upload it using the returned profile ID
+                if (inputFile.files.length > 0) {
+                    const formData = new FormData();
+                    formData.append('file', inputFile.files[0]);
+
+                    const photoResponse = await fetch(`/api/profiles/${createdProfile.id}/photo`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!photoResponse.ok) {
+                        alert('Identity parameters saved, but image storage rejected. Please review file format.');
+                    }
+                }
+
+                // Step C: Execution cycle finished. Route back to the master list dashboard
+                window.location.href = '/';
+
+            } catch (err) {
+                alert('Error submitting to system server context: ' + err.message);
+            }
+        });
+    </script>
+</body>
+</html>

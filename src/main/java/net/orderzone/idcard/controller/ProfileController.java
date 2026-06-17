@@ -150,15 +150,16 @@ public class ProfileController {
 
     @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> exportSingleIdCardPdf(@PathVariable Long id) {
-        Profile profile = profileService.getProfileById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Profile not found."));
-
-        byte[] pdfContents = pdfExportService.generateBatchIdCardsPdf(List.of(profile));
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentDispositionFormData("inline", "idcard-" + profile.getRegistrationNumber() + ".pdf");
-        
-        return new ResponseEntity<>(pdfContents, headers, HttpStatus.OK);
+        return profileService.getProfileById(id)
+                .map(profile -> {
+                    byte[] pdfContents = pdfExportService.generateBatchIdCardsPdf(List.of(profile));
+                    
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.setContentDispositionFormData("inline", "idcard-" + profile.getRegistrationNumber() + ".pdf");
+                    
+                    return new ResponseEntity<>(pdfContents, headers, HttpStatus.OK);
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build()); // Returns a valid HTTP 404 standard code
     }
 
     @GetMapping(value = "/batch/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
@@ -176,4 +177,26 @@ public class ProfileController {
         
         return new ResponseEntity<>(pdfContents, headers, HttpStatus.OK);
     }
+
+    @GetMapping(value = "/selected/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportSelectedIdCardsPdf(@RequestParam("ids") List<Long> ids) {
+        // Map the IDs into full profile entities via service streaming
+        List<Profile> targetingGroup = ids.stream()
+                .map(profileService::getProfileById)
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .toList();
+
+        if (targetingGroup.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        byte[] pdfContents = pdfExportService.generateBatchIdCardsPdf(targetingGroup);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDispositionFormData("attachment", "selected-idcards-export.pdf");
+
+        return new ResponseEntity<>(pdfContents, headers, HttpStatus.OK);
+    }
+
 }

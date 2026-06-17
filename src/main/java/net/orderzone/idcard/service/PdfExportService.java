@@ -25,10 +25,6 @@ public class PdfExportService {
         this.barcodeService = barcodeService;
     }
 
-    /**
-     * Generates a combined single-document PDF stream containing high-resolution renders 
-     * of multiple profiles (Batch ID Generation). Each cardholder is isolated onto their own page.
-     */
     public byte[] generateBatchIdCardsPdf(List<Profile> profiles) {
         if (profiles == null || profiles.isEmpty()) {
             throw new IllegalArgumentException("Profile collection for batch export cannot be empty.");
@@ -36,8 +32,7 @@ public class PdfExportService {
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         
-        // Pick dimension rules based on the first element's layout
-        boolean isHorizontal = "HORIZONTAL".equalsIgnoreCase(profiles.get(0).getTemplate().getLayout());
+        boolean isHorizontal = profiles.get(0).getTemplate() != null && "HORIZONTAL".equalsIgnoreCase(profiles.get(0).getTemplate().getLayout());
         Rectangle pageSize = isHorizontal ? new Rectangle(243f, 153f) : new Rectangle(153f, 243f);
 
         Document document = new Document(pageSize, 0f, 0f, 0f, 0f);
@@ -49,9 +44,8 @@ public class PdfExportService {
             for (int i = 0; i < profiles.size(); i++) {
                 Profile profile = profiles.get(i);
                 
-                // Enforce a new page trigger for every element after the first baseline
                 if (i > 0) {
-                    boolean currentHorizontal = "HORIZONTAL".equalsIgnoreCase(profile.getTemplate().getLayout());
+                    boolean currentHorizontal = profile.getTemplate() != null && "HORIZONTAL".equalsIgnoreCase(profile.getTemplate().getLayout());
                     document.setPageSize(currentHorizontal ? new Rectangle(243f, 153f) : new Rectangle(153f, 243f));
                     document.newPage();
                 }
@@ -72,9 +66,21 @@ public class PdfExportService {
         float width = writer.getPageSize().getWidth();
         float height = writer.getPageSize().getHeight();
 
-        BaseColor primaryColor = new BaseColor(java.awt.Color.decode(profile.getTemplate().getPrimaryColor()).getRGB());
-        BaseColor secondaryColor = new BaseColor(java.awt.Color.decode(profile.getTemplate().getSecondaryColor()).getRGB());
-        BaseColor textColor = new BaseColor(java.awt.Color.decode(profile.getTemplate().getTextColor()).getRGB());
+        // 1. Establish robust style parameters with safe default fallbacks
+        String primaryHex = (profile.getTemplate() != null && profile.getTemplate().getPrimaryColor() != null) 
+                ? profile.getTemplate().getPrimaryColor() : "#1d4ed8";
+        String secondaryHex = (profile.getTemplate() != null && profile.getTemplate().getSecondaryColor() != null) 
+                ? profile.getTemplate().getSecondaryColor() : "#e0e7ff";
+        String textHex = (profile.getTemplate() != null && profile.getTemplate().getTextColor() != null) 
+                ? profile.getTemplate().getTextColor() : "#111827";
+        String organizationName = (profile.getTemplate() != null && profile.getTemplate().getOrganizationName() != null) 
+                ? profile.getTemplate().getOrganizationName() : "ORDERZONE ACADEMY";
+        String layout = (profile.getTemplate() != null && profile.getTemplate().getLayout() != null) 
+                ? profile.getTemplate().getLayout() : "VERTICAL";
+
+        BaseColor primaryColor = new BaseColor(java.awt.Color.decode(primaryHex).getRGB());
+        BaseColor secondaryColor = new BaseColor(java.awt.Color.decode(secondaryHex).getRGB());
+        BaseColor textColor = new BaseColor(java.awt.Color.decode(textHex).getRGB());
 
         // 2. Draw Main Background Base Card Shell Canvas
         cb.setColorFill(BaseColor.WHITE);
@@ -82,7 +88,7 @@ public class PdfExportService {
         cb.fill();
 
         // 3. Draw Header Blocks depending on the orientation format
-        boolean isHorizontal = "HORIZONTAL".equalsIgnoreCase(profile.getTemplate().getLayout());
+        boolean isHorizontal = "HORIZONTAL".equalsIgnoreCase(layout);
 
         if (!isHorizontal) {
             // VERTICAL LAYOUT
@@ -94,17 +100,15 @@ public class PdfExportService {
             cb.rectangle(0, 0, width, 15f);
             cb.fill();
 
-            // Font configurations
             BaseFont bf = BaseFont.createFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
             
-            // Org Header Text
             cb.beginText();
             cb.setFontAndSize(bf, 10f);
             cb.setColorFill(BaseColor.WHITE);
-            cb.showTextAligned(PdfContentByte.ALIGN_CENTER, profile.getTemplate().getOrganizationName().toUpperCase(), width / 2, height - 25f, 0);
+            cb.showTextAligned(PdfContentByte.ALIGN_CENTER, organizationName.toUpperCase(), width / 2, height - 25f, 0);
             
             cb.setFontAndSize(bf, 6f);
-            if (profile.getTemplate().getTagline() != null) {
+            if (profile.getTemplate() != null && profile.getTemplate().getTagline() != null) {
                 cb.showTextAligned(PdfContentByte.ALIGN_CENTER, profile.getTemplate().getTagline(), width / 2, height - 38f, 0);
             }
 
@@ -141,7 +145,7 @@ public class PdfExportService {
             cb.setFontAndSize(bf, 9f);
             cb.setColorFill(BaseColor.WHITE);
             // Rotate string layout 90 degrees upwards for horizontal sidebars
-            cb.showTextAligned(PdfContentByte.ALIGN_CENTER, profile.getTemplate().getOrganizationName().toUpperCase(), 42f, height / 2, 90f);
+            cb.showTextAligned(PdfContentByte.ALIGN_CENTER, organizationName.toUpperCase(), 42f, height / 2, 90f);
             
             cb.setColorFill(textColor);
             cb.setFontAndSize(bf, 12f);
@@ -173,14 +177,14 @@ public class PdfExportService {
                     img.scaleAbsolute(45f, 45f);
                     img.setAbsolutePosition(width / 2 - 22.5f, height - 100f);
                 } else {
+                    // Reposition photo safely to the upper middle-right field area
                     img.scaleAbsolute(45f, 45f);
-                    img.setAbsolutePosition(100f, height - 130f);
+                    img.setAbsolutePosition(185f, height - 65f);
                 }
                 cb.addImage(img);
             }
         }
 
-        // 2. Extract Base64 ZXing streams dynamically generated directly from BarcodeService
         String trackingUrl = "https://orderzone.net/verify/idcard/" + profile.getUuid();
         
         byte[] qrBytes = Base64.getDecoder().decode(barcodeService.generateQrCodeBase64(trackingUrl, 100, 100));
@@ -196,11 +200,12 @@ public class PdfExportService {
             barcodeImg.scaleAbsolute(70f, 22f);
             barcodeImg.setAbsolutePosition(68f, 25f);
         } else {
+            // Standardized footer alignment parameters for Horizontal layout
             qrImg.scaleAbsolute(32f, 32f);
-            qrImg.setAbsolutePosition(195f, height - 135f);
+            qrImg.setAbsolutePosition(195f, 15f);
             
             barcodeImg.scaleAbsolute(80f, 20f);
-            barcodeImg.setAbsolutePosition(100f, height - 130f);
+            barcodeImg.setAbsolutePosition(100f, 20f); // Safely clear of the upper profile photo area
         }
 
         cb.addImage(qrImg);

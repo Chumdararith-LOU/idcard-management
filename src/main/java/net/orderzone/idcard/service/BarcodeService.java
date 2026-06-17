@@ -29,22 +29,16 @@ public class BarcodeService {
         }
     }
 
-    /**
-     * Generates a linear Barcode based on the selected enum type (CODE_128 or EAN_13)
-     * and returns a Base64 PNG string.
-     */
     public String generateBarcodeBase64(String text, BarcodeType type, int width, int height) {
         try {
             BarcodeFormat format;
-            if (type == BarcodeType.EAN_13) {
+            if (type != null && type == BarcodeType.EAN_13) {
                 format = BarcodeFormat.EAN_13;
-                // EAN-13 expects exactly 12 or 13 numerical digits; normalize if needed
                 if (!text.matches("\\d{12,13}")) {
-                    // Fallback baseline standard sample if text doesn't comply with strict EAN formats
                     text = "1234567890128"; 
                 }
             } else {
-                format = BarcodeFormat.CODE_128; // Handles alphanumeric strings gracefully
+                format = BarcodeFormat.CODE_128; 
             }
 
             BitMatrix bitMatrix = new MultiFormatWriter().encode(text, format, width, height);

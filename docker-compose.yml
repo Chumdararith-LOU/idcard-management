@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  db-container:
+    image: mysql:8.0
+    container_name: db-container
+    environment:
+      MYSQL_ROOT_PASSWORD: "Hello@123"
+      MYSQL_DATABASE: "A-LOU_Chumdararith-db"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+  web-container:
+    image: eclipse-temurin:21-jdk
+    container_name: web-container
+    ports:
+      - "8443:8443"  # Website port
+      - "2222:2222"  # SSH port
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      /bin/bash -c "
+      apt-get update && apt-get install -y nginx openssh-server php-cli git curl &&
+      echo 'server { listen 8443; location / { proxy_pass http://127.0.0.1:8080; } }' > /etc/nginx/sites-available/default &&
+      service nginx restart &&
+      sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config &&
+      echo 'root:Hello@123' | chpasswd &&
+      ssh-keygen -A &&
+      service ssh start &&
+      tail -f /dev/null
+      "
+    restart: unless-stopped
+
+volumes:
+  mysql_data:

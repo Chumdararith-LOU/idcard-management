@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>ID Card Generator - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Inter', sans-serif; }
+        .navbar-brand { font-weight: 700; letter-spacing: -0.5px; }
+        .card-shadow { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: none; border-radius: 10px; }
+        .badge-student { background-color: #e0f2fe; color: #0369a1; font-weight: 600; }
+        .badge-employee { background-color: #dcfce7; color: #15803d; font-weight: 600; }
+        .badge-user { background-color: #f3f4f6; color: #4b5563; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">🪪 ID Card Studio</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link active" th:href="@{/}">Profiles</a>
+                <a class="nav-link text-white-50" th:href="@{/profiles/new}">New Profile</a>
+                <a class="nav-link text-white-50" th:href="@{/profiles/batch}">Batch Export</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold text-secondary mb-1">Identity Management</h2>
+                <p class="text-muted small mb-0">Review, search, and generate system ID passes from a single control interface.</p>
+            </div>
+            <a th:href="@{/profiles/new}" class="btn btn-primary px-4 fw-medium shadow-sm">+ Create New Profile</a>
+        </div>
+
+        <div class="card card-shadow">
+            <div class="card-body p-4">
+                <form th:action="@{/}" method="get" class="row g-3 mb-4">
+                    <div class="col-md-8 col-sm-12">
+                        <input type="text" name="search" th:value="${searchKeyword}" class="form-format form-control" placeholder="Search profiles by name, registration ID, department, or contact email..."/>
+                    </div>
+                    <div class="col-md-4 col-sm-12 d-flex gap-2">
+                        <button type="submit" class="btn btn-secondary w-100 fw-medium">Search</button>
+                        <a th:href="@{/}" class="btn btn-outline-light border text-secondary w-50">Clear</a>
+                    </div>
+                </form>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-uppercase font-monospace small text-muted">
+                            <tr>
+                                <th class="ps-3">Reg. Number</th>
+                                <th>Full Name</th>
+                                <th>Classification</th>
+                                <th>Department</th>
+                                <th>Active Layout Theme</th>
+                                <th class="text-end pe-3">Actions Mapping</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(profiles)}">
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    No active identity records found in database storage.
+                                </td>
+                            </tr>
+                            <tr th:each="profile : ${profiles}">
+                                <td class="fw-bold font-monospace text-primary ps-3" th:text="${profile.registrationNumber}">2026-ENG-001</td>
+                                <td class="fw-semibold text-dark" th:text="${profile.fullName}">John Doe</td>
+                                <td>
+                                    <span th:if="${profile.type.name() == 'STUDENT'}" class="badge badge-student px-2.5 py-1.5 rounded text-xs">STUDENT</span>
+                                    <span th:if="${profile.type.name() == 'EMPLOYEE'}" class="badge badge-employee px-2.5 py-1.5 rounded text-xs">EMPLOYEE</span>
+                                    <span th:if="${profile.type.name() == 'USER'}" class="badge badge-user px-2.5 py-1.5 rounded text-xs">USER</span>
+                                </td>
+                                <td class="text-muted" th:text="${profile.department != null ? profile.department : '—'}">Engineering</td>
+                                <td>
+                                    <span class="text-secondary font-monospace small" th:text="${profile.template.name}">Classic Theme</span>
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="btn-group btn-group-sm shadow-sm" role="group">
+                                        <a th:href="@{'/profiles/' + ${profile.id} + '/preview'}" target="_blank" class="btn btn-outline-secondary">Card View</a>
+                                        <a th:href="@{'/api/profiles/' + ${profile.id} + '/pdf'}" class="btn btn-outline-primary fw-medium">PDF</a>
+                                        <button class="btn btn-outline-danger" th:onclick="'deleteProfileCard(' + ${profile.id} + ')'">Remove</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <script>
+        async function deleteProfileCard(id) {
+            if (confirm("Are you sure you want to permanently delete this identity profile card?")) {
+                try {
+                    const response = await fetch('/api/profiles/' + id, { method: 'DELETE' });
+                    if (response.ok || response.status === 204) {
+                        window.location.reload(); 
+                    } else {
+                        alert('Server rejected request. Unable to delete profile.');
+                    }
+                } catch (error) {
+                    alert('Network error encountered: ' + error.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
