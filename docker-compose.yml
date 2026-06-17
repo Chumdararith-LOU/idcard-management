@@ -31,6 +31,7 @@ services:
       mkdir -p /var/run/sshd &&
       echo 'root:Hello@123' | chpasswd &&
       ssh-keygen -A &&
+      git config --global --add safe.directory /app &&
       /usr/sbin/sshd -D -p 2222 -o PermitRootLogin=yes -o PasswordAuthentication=yes -o UsePAM=no
       "
     restart: unless-stopped
