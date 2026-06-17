@@ -7,6 +7,10 @@
     backup_dest: "/app/backup.sql"
 
   tasks:
+    - name: 0. Add application path to Git safe directories to resolve dubious ownership
+      ansible.builtin.shell:
+        cmd: "git config --global --add safe.directory {{ app_path }}"
+
     - name: 1. Clean local repository modifications to avoid pull conflicts
       ansible.builtin.shell:
         cmd: "git reset --hard HEAD && git clean -fd"
