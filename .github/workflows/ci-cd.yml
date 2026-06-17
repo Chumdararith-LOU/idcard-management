@@ -30,15 +30,15 @@ jobs:
       - name: 5. Start Docker Compose Environment
         run: docker compose up -d
 
-      - name: 6. Wait for SSH service to be ready
+      - name: 6. Wait for internal container initialization to complete
         run: |
-          echo "Waiting for container initialization and SSH availability..."
-          until nc -z 127.0.0.1 2222; do
-            echo "SSH port 2222 is not ready yet. Sleeping 5 seconds..."
+          echo "Waiting for web-container to finish installing packages and start the SSH process..."
+          until docker exec web-container pgrep sshd > /dev/null 2>&1; do
+            echo "SSH service is not running inside the container yet. Sleeping 5 seconds..."
             sleep 5
           done
-          echo "SSH port is open! Giving the service 5 more seconds to initialize protocol handshakes..."
-          sleep 5
+          echo "SSH service is successfully alive inside the container!"
+          sleep 2
 
       - name: 7. Run Ansible Playbook to Deploy
         run: ansible-playbook -i inventory.ini deploy-playbook.yml
