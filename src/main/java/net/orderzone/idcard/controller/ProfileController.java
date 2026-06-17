@@ -2,10 +2,14 @@ package net.orderzone.idcard.controller;
 
 import net.orderzone.idcard.model.Profile;
 import net.orderzone.idcard.service.ProfileService;
+import net.orderzone.idcard.service.BarcodeService;
+import net.orderzone.idcard.service.PdfExportService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,11 +24,15 @@ import java.util.UUID;
 public class ProfileController {
 
     private final ProfileService profileService;
-    // Local directory within the project where uploaded photos will safely live
+    private final BarcodeService barcodeService;    
+    private final PdfExportService pdfExportService;    
     private final String UPLOAD_DIR = "uploads/photos/";
 
-    public ProfileController(ProfileService profileService) {
+    
+    public ProfileController(ProfileService profileService, BarcodeService barcodeService, PdfExportService pdfExportService) {
         this.profileService = profileService;
+        this.barcodeService = barcodeService;
+        this.pdfExportService = pdfExportService;
     }
 
     @GetMapping
@@ -113,5 +121,59 @@ public class ProfileController {
         } catch (IOException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to store file on filesystem: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/{id}/qrcode")
+    public ResponseEntity<String> getProfileQrCode(@PathVariable Long id) {
+        return profileService.getProfileById(id)
+                .map(profile -> {
+                    String verificationUrl = "https://orderzone.net/verify/idcard/" + profile.getUuid();
+                    String base64Image = barcodeService.generateQrCodeBase64(verificationUrl, 250, 250);
+                    return ResponseEntity.ok("data:image/png;base64," + base64Image);
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/barcode")
+    public ResponseEntity<String> getProfileBarcode(@PathVariable Long id) {
+        return profileService.getProfileById(id)
+                .map(profile -> {
+                    String base64Image = barcodeService.generateBarcodeBase64(
+                            profile.getRegistrationNumber(), 
+                            profile.getBarcodeType(), 
+                            300, 80
+                    );
+                    return ResponseEntity.ok("data:image/png;base64," + base64Image);
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportSingleIdCardPdf(@PathVariable Long id) {
+        Profile profile = profileService.getProfileById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Profile not found."));
+
+        byte[] pdfContents = pdfExportService.generateBatchIdCardsPdf(List.of(profile));
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDispositionFormData("inline", "idcard-" + profile.getRegistrationNumber() + ".pdf");
+        
+        return new ResponseEntity<>(pdfContents, headers, HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/batch/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> exportBatchIdCardsPdf(@RequestParam(value = "search", required = false) String search) {
+        List<Profile> targetingGroup = profileService.searchProfiles(search);
+        
+        if (targetingGroup.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        byte[] pdfContents = pdfExportService.generateBatchIdCardsPdf(targetingGroup);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentDispositionFormData("attachment", "batch-idcards-export.pdf");
+        
+        return new ResponseEntity<>(pdfContents, headers, HttpStatus.OK);
     }
 }

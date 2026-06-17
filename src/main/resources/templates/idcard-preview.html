@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>ID Card Live Preview</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* Base ID Card Wrapper container using Thymeleaf Dynamic Styles */
+        .id-card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            border: 2px solid var(--primary-color);
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        /* Layout Configuration A: VERTICAL Style Layout */
+        .layout-vertical {
+            width: 320px;
+            height: 480px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* Layout Configuration B: HORIZONTAL Style Layout */
+        .layout-horizontal {
+            width: 480px;
+            height: 300px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            text-align: left;
+            padding: 20px;
+        }
+
+        /* Header Style Section */
+        .card-header {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: #ffffff;
+            padding: 15px 10px;
+            box-sizing: border-box;
+        }
+        .layout-horizontal .card-header {
+            width: 40%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .org-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        .tagline {
+            font-size: 0.75rem;
+            opacity: 0.85;
+            margin: 5px 0 0 0;
+        }
+
+        /* Body Details Styling */
+        .card-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+            padding: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            color: var(--text-color);
+        }
+        .layout-horizontal .card-body {
+            width: 60%;
+            align-items: flex-start;
+            padding-left: 25px;
+        }
+
+        /* Photo Area Configuration */
+        .photo-container {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            border: 3px solid var(--secondary-color);
+            overflow: hidden;
+            background-color: #e5e7eb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .photo-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Meta Information Formatting */
+        .holder-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 8px 0 2px 0;
+        }
+        .holder-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #6b7280;
+            margin: 0 0 8px 0;
+        }
+        .meta-details {
+            font-size: 0.8rem;
+            margin: 3px 0;
+        }
+
+        /* Codes Footer section */
+        .codes-footer {
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: #fafafa;
+            border-top: 1px solid #e5e7eb;
+        }
+        .layout-horizontal .codes-footer {
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 60px;
+        }
+
+        .code-img {
+            height: 45px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+
+    <div th:class="'id-card ' + (${profile.template.layout == 'HORIZONTAL'} ? 'layout-horizontal' : 'layout-vertical')"
+         th:style="'--primary-color:' + ${profile.template.primaryColor} + 
+                   '; --secondary-color:' + ${profile.template.secondaryColor} + 
+                   '; --text-color:' + ${profile.template.textColor} + ';'">
+        
+        <div class="card-header">
+            <div class="org-name" th:text="${profile.template.organizationName}">Organization Name</div>
+            <div class="tagline" th:text="${profile.template.tagline}">Template Tagline</div>
+        </div>
+
+        <div class="card-body">
+            <div class="photo-container">
+                <img th:if="${profile.hasPhoto()}" th:src="@{'/uploads/photos/' + ${profile.photoFileName}}" alt="Avatar"/>
+                <img th:unless="${profile.hasPhoto()}" src="https://api.dicebear.com/7.x/initials/svg?seed=John" alt="Default Avatar"/>
+            </div>
+
+            <div>
+                <div class="holder-name" th:text="${profile.fullName}">Cardholder Full Name</div>
+                <div class="holder-title" th:text="${profile.title}">Job Title / Program</div>
+            </div>
+
+            <div style="width: 100%;">
+                <div class="meta-details"><strong>Reg No:</strong> <span th:text="${profile.registrationNumber}">2026-REG-01</span></div>
+                <div class="meta-details"><strong>Dept:</strong> <span th:text="${profile.department}">Department</span></div>
+                <div class="meta-details"><strong>Blood Group:</strong> <span th:text="${profile.bloodGroup}">O+</span></div>
+                <div class="meta-details"><strong>Type:</strong> <span th:text="${profile.type}">STUDENT</span></div>
+            </div>
+        </div>
+
+        <div class="codes-footer">
+            <img class="code-img" th:src="'data:image/png;base64,' + ${qrCodeBase64}" alt="QR Verification Link"/>
+            <img class="code-img" th:src="'data:image/png;base64,' + ${barcodeBase64}" alt="Identity Barcode"/>
+        </div>
+
+    </div>
+
+</body>
+</html>
