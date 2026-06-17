@@ -35,6 +35,18 @@ services:
       /usr/sbin/sshd -D -p 2222 -o PermitRootLogin=yes -o PasswordAuthentication=yes -o UsePAM=no
       "
     restart: unless-stopped
+  
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-container
+    environment:
+      PMA_HOST: db-container      
+      MYSQL_ROOT_PASSWORD: "Hello@123"
+    ports:
+      - "8081:80"                  
+    depends_on:
+      - db-container
+    restart: unless-stopped
 
 volumes:
   mysql_data:
