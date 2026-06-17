@@ -29,7 +29,7 @@ pipeline {
                 subject: "BUILD FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
                 body: """The build pipeline has encountered an error.
                          Please review the live console logs at: ${env.BUILD_URL}""",
-                to: 'srengty@gmail.com',
+                to: 'srengty@gmail.com, louchumdararith02@gmail.com',
                 recipientProviders: [
                     [$class: 'DevelopersRecipientProvider'], 
                     [$class: 'CulpritsRecipientProvider']    
