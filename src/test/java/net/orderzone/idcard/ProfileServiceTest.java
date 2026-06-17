@@ -22,8 +22,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
 class ProfileServiceTest {
 
     @Mock
@@ -72,7 +70,7 @@ class ProfileServiceTest {
         when(profileRepository.existsByRegistrationNumber(anyString())).thenReturn(false);
         when(templateService.getOrCreateDefaultTemplate()).thenReturn(mockTemplate);
 
-        when(profileRepository.save(any(Profile.class)))
+        when(profileRepository.save(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         Profile savedProfile = profileService.createProfile(inputProfile);
@@ -83,7 +81,7 @@ class ProfileServiceTest {
         assertNotNull(savedProfile.getRegistrationNumber(), "Registration number should be automatically generated!");
         assertTrue(savedProfile.getRegistrationNumber().contains("ENG")); // Validates custom sequence contains short dept code
         assertEquals(mockTemplate, savedProfile.getTemplate());
-        verify(profileRepository, times(1)).save(any(Profile.class));
+        verify(profileRepository, times(1)).save(any());
     }
 
     @Test
