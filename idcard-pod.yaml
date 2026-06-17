@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-config
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS `A-LOU_Chumdararith-db`;
+    CREATE DATABASE IF NOT EXISTS `LOU_Chumdararith-db`;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  default: |
+    server {
+        listen 8443;
+        server_name localhost;
+
+        location / {
+            proxy_pass http://127.0.0.1:8080;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: idcard-app-pod
+  labels:
+    app: idcard-management
+spec:
+  containers:
+    - name: db-container
+      image: mysql:8.0
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "Hello@123"
+      ports:
+        - containerPort: 3306
+          name: mysql
+      volumeMounts:
+        - name: mysql-init-volume
+          mountPath: /docker-entrypoint-initdb.d
+
+    - name: web-container
+      image: eclipse-temurin:21-jdk
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          apt-get update && apt-get install -y nginx openssh-server php-cli git curl maven
+          
+          # Inject NGINX reverse proxy configuration
+          cp /etc/nginx-config/default /etc/nginx/sites-available/default
+          service nginx start
+          
+          # Reconfigure SSH to listen on port 2222
+          sed -i 's/#Port 22/Port 2222/' /etc/ssh/sshd_config
+          sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+          echo "root:Hello@123" | chpasswd
+          ssh-keygen -A
+          service ssh start
+          
+          # Clone repository into deployment directory
+          git clone https://github.com/Chumdararith-LOU/idcard-management.git /app
+          
+          # Keep container active
+          tail -f /dev/null
+      ports:
+        - containerPort: 8443
+          name: website
+        - containerPort: 2222
+          name: ssh
+      volumeMounts:
+        - name: nginx-config-volume
+          mountPath: /etc/nginx-config
+
+  volumes:
+    - name: mysql-init-volume
+      configMap:
+        name: mysql-init-config
+    - name: nginx-config-volume
+      configMap:
+        name: nginx-config
