@@ -24,18 +24,14 @@ services:
     working_dir: /app
     command: >
       /bin/bash -c "
+      export DEBIAN_FRONTEND=noninteractive &&
       apt-get update && apt-get install -y nginx openssh-server php-cli git curl maven default-mysql-client &&
       echo 'server { listen 8443; location / { proxy_pass http://127.0.0.1:8080; } }' > /etc/nginx/sites-available/default &&
       service nginx restart &&
       mkdir -p /var/run/sshd &&
-      echo 'Port 2222' >> /etc/ssh/sshd_config &&
-      echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config &&
-      echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config &&
-      echo 'UsePAM no' >> /etc/ssh/sshd_config &&
       echo 'root:Hello@123' | chpasswd &&
       ssh-keygen -A &&
-      service ssh start &&
-      tail -f /dev/null
+      /usr/sbin/sshd -D -p 2222 -o PermitRootLogin=yes -o PasswordAuthentication=yes -o UsePAM=no
       "
     restart: unless-stopped
 
