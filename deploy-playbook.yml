@@ -23,7 +23,7 @@
 
     - name: 3. Run localized unit tests utilizing the isolated SQLite configuration profile
       ansible.builtin.shell:
-        cmd: "mvn test -Dspring.profiles.active=test"
+        cmd: "export JAVA_HOME=/opt/java/openjdk && mvn test -Dspring.profiles.active=test"
         chdir: "{{ app_path }}"
       register: maven_test_output
 
