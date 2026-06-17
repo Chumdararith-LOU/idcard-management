@@ -71,12 +71,16 @@ class ProfileServiceTest {
 
         when(profileRepository.existsByRegistrationNumber(anyString())).thenReturn(false);
         when(templateService.getOrCreateDefaultTemplate()).thenReturn(mockTemplate);
-        when(profileRepository.save(any(Profile.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(profileRepository.save(any(Profile.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         Profile savedProfile = profileService.createProfile(inputProfile);
 
-        assertNotNull(savedProfile.getUuid());
-        assertNotNull(savedProfile.getRegistrationNumber());
+        // 3. Assert
+        assertNotNull(savedProfile, "The saved profile should not be null!");
+        assertNotNull(savedProfile.getUuid(), "UUID should be automatically generated!");
+        assertNotNull(savedProfile.getRegistrationNumber(), "Registration number should be automatically generated!");
         assertTrue(savedProfile.getRegistrationNumber().contains("ENG")); // Validates custom sequence contains short dept code
         assertEquals(mockTemplate, savedProfile.getTemplate());
         verify(profileRepository, times(1)).save(any(Profile.class));
@@ -98,7 +102,6 @@ class ProfileServiceTest {
     @Test
     void testValidatePhoto_ShouldThrowException_WhenFormatIsInvalid() {
         byte[] validSizeBytes = new byte[100];
-        // Invalid text/plain content type
         MockMultipartFile textFile = new MockMultipartFile("file", "document.txt", "text/plain", validSizeBytes);
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
